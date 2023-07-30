@@ -27,6 +27,7 @@ async function run() {
     await client.connect();
 
     const classCollection = client.db("sportsCamp").collection("classes");
+    const instractorsCollection = client.db("sportsCamp").collection("instractors");
 
     app.get('/classes', async (req, res) => {
         const result = await classCollection.find().toArray();
