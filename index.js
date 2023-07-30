@@ -44,6 +44,12 @@ async function run() {
         const query = { email: user.email }
         const previousUser = await userCollection.findOne(query);
   
+        if (previousUser) {
+          return res.send({ message: 'user already exists' })
+        }
+  
+        const result = await userCollection.insertOne(user);
+        res.send(result);
       });
   
 
