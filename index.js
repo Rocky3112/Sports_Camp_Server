@@ -39,6 +39,14 @@ async function run() {
         res.send(result);
       });
 
+      app.post('/users', async (req, res) => {
+        const user = req.body;
+        const query = { email: user.email }
+        const previousUser = await userCollection.findOne(query);
+  
+      });
+  
+
     
   
     await client.db("admin").command({ ping: 1 });
