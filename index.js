@@ -28,6 +28,7 @@ async function run() {
 
     const classCollection = client.db("sportsCamp").collection("classes");
     const instractorsCollection = client.db("sportsCamp").collection("instractors");
+    const userCollection = client.db("sportsCamp").collection("users");
 
     app.get('/classes', async (req, res) => {
         const result = await classCollection.find().toArray();
@@ -38,6 +39,8 @@ async function run() {
         res.send(result);
       });
 
+    
+  
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
