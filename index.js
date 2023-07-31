@@ -56,6 +56,21 @@ async function run() {
         const result = await userCollection.insertOne(user);
         res.send(result);
       });
+      
+      app.patch('/users/admin/:id', async (req, res) => {
+        const userId = req.params.id;
+        const filter = { _id: new ObjectId(userId) };
+        const updateDoc = {
+          $set: {
+            role: 'admin'
+          },
+        };
+  
+        const result = await userCollection.updateOne(filter, updateDoc);
+        res.send(result);
+  
+      })
+  
   
 
     
