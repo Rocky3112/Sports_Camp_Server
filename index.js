@@ -47,6 +47,7 @@ async function run() {
     const classCollection = client.db("sportsCamp").collection("classes");
     const instractorsCollection = client.db("sportsCamp").collection("instractors");
     const userCollection = client.db("sportsCamp").collection("users");
+    const selectCollection = client.db("sportsCamp").collection("selects");
 
     
     app.post('/jwt', (req, res) => {
@@ -108,6 +109,28 @@ async function run() {
         const result = await userCollection.updateOne(filter, updateDoc);
         res.send(result);
   
+      })
+
+      //for select classes
+      app.post('/selects', async (req, res) => {
+        const cls = req.body;
+        const result = await selectCollection.insertOne(cls);
+        res.send(result);
+      })
+
+      //get selected class
+      app.get('/selects',verifyJWT,  async (req, res) => {
+        const email = req.query.email;
+        const query = { email: email };
+        const result = await selectCollection.find(query).toArray();
+        res.send(result);
+      });
+      
+      app.delete('/selects/:id', async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await selectCollection.deleteOne(query);
+        res.send(result);
       })
   
 
