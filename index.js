@@ -68,13 +68,13 @@ async function run() {
         const result = await userCollection.find().toArray();
         res.send(result);
       });
-
+  
       app.post('/users', async (req, res) => {
         const user = req.body;
         const query = { email: user.email }
-        const previousUser = await userCollection.findOne(query);
+        const existingUser = await userCollection.findOne(query);
   
-        if (previousUser) {
+        if (existingUser) {
           return res.send({ message: 'user already exists' })
         }
   
@@ -110,9 +110,7 @@ async function run() {
   
       })
   
-  
 
-    
   
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
