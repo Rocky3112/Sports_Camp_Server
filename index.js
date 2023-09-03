@@ -98,6 +98,7 @@ async function run() {
       .collection("instractors");
     const userCollection = client.db("sportsCamp").collection("users");
     const selectCollection = client.db("sportsCamp").collection("selects");
+    const paymentCollection = client.db("sportsCamp").collection("payments");
 
     app.post("/jwt", (req, res) => {
       const user = req.body;
@@ -189,6 +190,50 @@ async function run() {
       const result = await selectCollection.deleteOne(query);
       res.send(result);
     });
+
+
+
+    //for payment info
+
+    app.post("/payments", verifyJWT, async (req, res) => {
+      const payment = req.body;
+      const insertTesult = await paymentCollection.insertOne(payment);
+      const query = { _id: { $in: payment.cartItems.map(id => new ObjectId(id)) } }
+      const deleteResult = await cartCollection.deleteMany(query)
+      //send an email
+      sendPaymentconfirmationEmail(payment)
+      res.send({ insertTesult, deleteResult });
+    });
+
+      //find for admin home page
+
+      app.get("/admin-stats", verifyJWT, verifyAdmin, async (req, res) => {
+        const users = await usersCollection.estimatedDocumentCount();
+        const products = await menuCollection.estimatedDocumentCount();
+        const orders = await paymentCollection.estimatedDocumentCount();
+  
+        // best way to get sum of the price field is to use group and sum operator
+        /*
+          await paymentCollection.aggregate([
+            {
+              $group: {
+                _id: null,
+                total: { $sum: '$price' }
+              }
+            }
+          ]).toArray()
+        */
+  
+        const payments = await paymentCollection.find().toArray();
+        const revenue = payments.reduce((sum, payment) => sum + payment.price, 0);
+  
+        res.send({
+          revenue,
+          users,
+          products,
+          orders,
+        });
+      });
 
     await client.db("admin").command({ ping: 1 });
     console.log(
