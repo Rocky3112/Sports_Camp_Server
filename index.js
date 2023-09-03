@@ -111,6 +111,20 @@ async function run() {
 
       res.send({ token });
     });
+
+    // Warning: use verifyJWT before using verifyAdmin
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      if (user?.role !== "admin") {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden message" });
+      }
+      next();
+    };
+
     app.get("/classes", async (req, res) => {
       const result = await classCollection.find().toArray();
       res.send(result);
@@ -218,7 +232,7 @@ async function run() {
       const query = {
         _id: { $in: payment.cartItems.map((id) => new ObjectId(id)) },
       };
-      const deleteResult = await cartCollection.deleteMany(query);
+      const deleteResult = await selectCollection.deleteMany(query);
       //send an email
       sendPaymentconfirmationEmail(payment);
       res.send({ insertTesult, deleteResult });
@@ -227,21 +241,9 @@ async function run() {
     //find for admin home page
 
     app.get("/admin-stats", verifyJWT, verifyAdmin, async (req, res) => {
-      const users = await usersCollection.estimatedDocumentCount();
-      const products = await menuCollection.estimatedDocumentCount();
-      const orders = await paymentCollection.estimatedDocumentCount();
-
-      // best way to get sum of the price field is to use group and sum operator
-      /*
-          await paymentCollection.aggregate([
-            {
-              $group: {
-                _id: null,
-                total: { $sum: '$price' }
-              }
-            }
-          ]).toArray()
-        */
+      const users = await userCollection.estimatedDocumentCount();
+      const classes = await classCollection.estimatedDocumentCount();
+      const paid = await paymentCollection.estimatedDocumentCount();
 
       const payments = await paymentCollection.find().toArray();
       const revenue = payments.reduce((sum, payment) => sum + payment.price, 0);
@@ -249,8 +251,8 @@ async function run() {
       res.send({
         revenue,
         users,
-        products,
-        orders,
+        classes,
+        paid,
       });
     });
 
