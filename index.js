@@ -5,9 +5,53 @@ const port = process.env.PORT || 5000;
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
+
+const nodemailer = require("nodemailer");
+const mg = require('nodemailer-mailgun-transport');
+
+const stripe = require("stripe")(process.env.Payment_Secret_Key);
 //middleware
 app.use(cors());
 app.use(express.json());
+//for payment
+
+ //send mail for confirm to successful payment
+    // let transporter = nodemailer.createTransport({
+    //   host: "smtp.sendgrid.net",
+    //   port: 587,
+    //   auth: {
+    //     user: "apikey",
+    //     pass: process.env.SENDGRID_API_KEY,
+    //   },
+    // });
+    const auth = {
+      auth: {
+        api_key: process.env.EMAIL_PRIVATE_KEY,
+        domain: process.env.EMAIL_DOMAIN
+      }
+    }
+    
+    const transporter = nodemailer.createTransport(mg(auth));
+
+    const sendPaymentconfirmationEmail = payment =>{
+      transporter.sendMail({
+        from: "alomgirhossainrocky@gmail.com", // verified sender email
+        to: "alomgirhossainrocky@gmail.com", // recipient email
+        subject: "Your order is confirmed.Enjoy the food", // Subject line
+        text: "Hello world!", // plain text body
+        html: `
+        <div>
+          <h2>Payment confrimed!!!</h2>
+        </div>
+        `, // html body
+      }, function(error, info){
+        if (error) {
+          console.log(error);
+        } else {
+          console.log('Email sent: ' + info.response);
+        }
+      });
+    }
 
 //verify jwt
 const verifyJWT = (req, res, next) => {
