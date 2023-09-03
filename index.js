@@ -7,7 +7,7 @@ const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 const nodemailer = require("nodemailer");
-const mg = require('nodemailer-mailgun-transport');
+const mg = require("nodemailer-mailgun-transport");
 
 const stripe = require("stripe")(process.env.Payment_Secret_Key);
 //middleware
@@ -15,43 +15,46 @@ app.use(cors());
 app.use(express.json());
 //for payment
 
- //send mail for confirm to successful payment
-    // let transporter = nodemailer.createTransport({
-    //   host: "smtp.sendgrid.net",
-    //   port: 587,
-    //   auth: {
-    //     user: "apikey",
-    //     pass: process.env.SENDGRID_API_KEY,
-    //   },
-    // });
-    const auth = {
-      auth: {
-        api_key: process.env.EMAIL_PRIVATE_KEY,
-        domain: process.env.EMAIL_DOMAIN
-      }
-    }
-    
-    const transporter = nodemailer.createTransport(mg(auth));
+//send mail for confirm to successful payment
+// let transporter = nodemailer.createTransport({
+//   host: "smtp.sendgrid.net",
+//   port: 587,
+//   auth: {
+//     user: "apikey",
+//     pass: process.env.SENDGRID_API_KEY,
+//   },
+// });
+const auth = {
+  auth: {
+    api_key: process.env.EMAIL_PRIVATE_KEY,
+    domain: process.env.EMAIL_DOMAIN,
+  },
+};
 
-    const sendPaymentconfirmationEmail = payment =>{
-      transporter.sendMail({
-        from: "alomgirhossainrocky@gmail.com", // verified sender email
-        to: "alomgirhossainrocky@gmail.com", // recipient email
-        subject: "Your order is confirmed.Enjoy the food", // Subject line
-        text: "Hello world!", // plain text body
-        html: `
+const transporter = nodemailer.createTransport(mg(auth));
+
+const sendPaymentconfirmationEmail = (payment) => {
+  transporter.sendMail(
+    {
+      from: "alomgirhossainrocky@gmail.com", // verified sender email
+      to: "alomgirhossainrocky@gmail.com", // recipient email
+      subject: "Your order is confirmed.Enjoy the food", // Subject line
+      text: "Hello world!", // plain text body
+      html: `
         <div>
           <h2>Payment confrimed!!!</h2>
         </div>
         `, // html body
-      }, function(error, info){
-        if (error) {
-          console.log(error);
-        } else {
-          console.log('Email sent: ' + info.response);
-        }
-      });
+    },
+    function (error, info) {
+      if (error) {
+        console.log(error);
+      } else {
+        console.log("Email sent: " + info.response);
+      }
     }
+  );
+};
 
 //verify jwt
 const verifyJWT = (req, res, next) => {
@@ -191,29 +194,45 @@ async function run() {
       res.send(result);
     });
 
+    //create payment intent
+    app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+      const { price } = req.body;
+      const amount = price * 100;
 
+      // Create a PaymentIntent with the order amount and currency
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
 
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
     //for payment info
 
     app.post("/payments", verifyJWT, async (req, res) => {
       const payment = req.body;
       const insertTesult = await paymentCollection.insertOne(payment);
-      const query = { _id: { $in: payment.cartItems.map(id => new ObjectId(id)) } }
-      const deleteResult = await cartCollection.deleteMany(query)
+      const query = {
+        _id: { $in: payment.cartItems.map((id) => new ObjectId(id)) },
+      };
+      const deleteResult = await cartCollection.deleteMany(query);
       //send an email
-      sendPaymentconfirmationEmail(payment)
+      sendPaymentconfirmationEmail(payment);
       res.send({ insertTesult, deleteResult });
     });
 
-      //find for admin home page
+    //find for admin home page
 
-      app.get("/admin-stats", verifyJWT, verifyAdmin, async (req, res) => {
-        const users = await usersCollection.estimatedDocumentCount();
-        const products = await menuCollection.estimatedDocumentCount();
-        const orders = await paymentCollection.estimatedDocumentCount();
-  
-        // best way to get sum of the price field is to use group and sum operator
-        /*
+    app.get("/admin-stats", verifyJWT, verifyAdmin, async (req, res) => {
+      const users = await usersCollection.estimatedDocumentCount();
+      const products = await menuCollection.estimatedDocumentCount();
+      const orders = await paymentCollection.estimatedDocumentCount();
+
+      // best way to get sum of the price field is to use group and sum operator
+      /*
           await paymentCollection.aggregate([
             {
               $group: {
@@ -223,19 +242,19 @@ async function run() {
             }
           ]).toArray()
         */
-  
-        const payments = await paymentCollection.find().toArray();
-        const revenue = payments.reduce((sum, payment) => sum + payment.price, 0);
-  
-        res.send({
-          revenue,
-          users,
-          products,
-          orders,
-        });
-      });
 
-       //find every item data
+      const payments = await paymentCollection.find().toArray();
+      const revenue = payments.reduce((sum, payment) => sum + payment.price, 0);
+
+      res.send({
+        revenue,
+        users,
+        products,
+        orders,
+      });
+    });
+
+    //find every item data
     app.get("/order-stats", verifyJWT, verifyAdmin, async (req, res) => {
       const pipeline = [
         {
